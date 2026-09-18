@@ -24,11 +24,7 @@ use clap::{Parser, Subcommand};
 struct Cli {
     /// Ollama endpoint. Set QUALM_OLLAMA or pass --ollama when the server
     /// runs on another machine.
-    #[arg(
-        long,
-        env = "QUALM_OLLAMA",
-        default_value = "http://localhost:11434"
-    )]
+    #[arg(long, env = "QUALM_OLLAMA", default_value = "http://localhost:11434")]
     ollama: String,
 
     /// Bound on in-flight requests. Ollama here runs OLLAMA_NUM_PARALLEL=4;
