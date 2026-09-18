@@ -1,0 +1,320 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dankaro.com/qualm/run-record.schema.json",
+  "title": "Run record",
+  "description": "One line of the JSONL run log - the ONLY interface between the Rust harness and the Python analysis (see docs/DESIGN.md). It is also the archival artifact: a reviewer must be able to recompute every published number from these lines alone, years later. That is why provenance is required rather than convenient.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "item_id",
+    "ts",
+    "model",
+    "item",
+    "elicitation",
+    "outcome",
+    "sampling",
+    "harness_version",
+    "prompt_set"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "description": "Groups records from one invocation."
+    },
+    "item_id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "model": {
+      "type": "object",
+      "description": "quantisation is REQUIRED and load-bearing. Calibration metrics are not comparable across quant levels (M-ratio profiles decorrelate entirely), so a record without it cannot be placed on a leaderboard at all.",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "quantisation",
+        "backend"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "examples": [
+            "granite4.1:8b",
+            "qwen3.5:9b"
+          ]
+        },
+        "quantisation": {
+          "type": "string",
+          "examples": [
+            "q4_K_M",
+            "q8_0",
+            "f16",
+            "MXFP4"
+          ],
+          "minLength": 1
+        },
+        "backend": {
+          "type": "string",
+          "examples": [
+            "ollama"
+          ]
+        },
+        "backend_version": {
+          "type": "string"
+        },
+        "params_billions": {
+          "type": "number"
+        }
+      }
+    },
+    "sampling": {
+      "type": "object",
+      "description": "Confidence is sensitive to these. Recording them is what makes a run reproducible. REQUIRED as of 0.3.0: they were optional before, so the docs' claim that provenance was 'enforced in the schema' was false — a record with no sampling block validated and scored.",
+      "additionalProperties": false,
+      "properties": {
+        "temperature": {
+          "type": "number"
+        },
+        "top_p": {
+          "type": "number"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "num_ctx": {
+          "type": "integer"
+        },
+        "num_predict": {
+          "type": "integer"
+        },
+        "num_parallel": {
+          "type": "integer"
+        },
+        "think": {
+          "description": "false is REQUIRED for reasoning models such as qwen3.5, which otherwise emit into the thinking field leaving response empty."
+        }
+      },
+      "required": [
+        "temperature",
+        "seed",
+        "num_ctx",
+        "num_predict",
+        "num_parallel"
+      ]
+    },
+    "elicitation": {
+      "type": "object",
+      "description": "Which confidence-elicitation strategy produced the numbers. Pluggable by design: verbalised confidence may not survive the validity screen.",
+      "additionalProperties": false,
+      "required": [
+        "strategy"
+      ],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "verbalised",
+            "self-consistency",
+            "fok-jol",
+            "logprob"
+          ]
+        },
+        "samples": {
+          "type": "integer",
+          "description": "For self-consistency: how many samples were drawn."
+        }
+      }
+    },
+    "signals": {
+      "type": "object",
+      "description": "The metacognitive readouts. fok is prospective (pre-solve), jol retrospective (post-solve) - Nelson-Narens, per arXiv 2605.14186.",
+      "additionalProperties": false,
+      "properties": {
+        "fok": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "jol": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "agreement": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Self-consistency: fraction of samples agreeing with the modal answer."
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "answered",
+        "correct"
+      ],
+      "properties": {
+        "answered": {
+          "type": "boolean",
+          "description": "Did the model answer rather than abstain? Distinct from correctness - an abstention on an unanswerable item is a SUCCESS."
+        },
+        "correct": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "null when not applicable (e.g. correctly abstained on an unanswerable item)."
+        },
+        "raw_answer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "abstained": {
+          "type": "boolean"
+        },
+        "schema_valid": {
+          "type": "boolean",
+          "description": "Did the response parse against the expected schema? A false here is a harness/model-format problem, NOT evidence about metacognition - keep it separate so the two are never conflated."
+        },
+        "control_action": {
+          "type": "string",
+          "enum": [
+            "trust",
+            "retry",
+            "aggregate",
+            "abstain",
+            "none"
+          ]
+        },
+        "attempts": {
+          "type": "integer"
+        },
+        "choice": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Selected option letter, as PRESENTED (i.e. after any permutation), not as stored canonically."
+        },
+        "premise_challenged": {
+          "type": "boolean",
+          "description": "Model flagged the question as resting on something false. Without this, a correct rebuttal is indistinguishable from credulity."
+        }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "total_ms": {
+          "type": "integer"
+        },
+        "eval_tokens": {
+          "type": "integer"
+        },
+        "prompt_tokens": {
+          "type": "integer"
+        },
+        "ollama_total_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Ollama's own total_duration in ns. Excludes our queue wait; the gap against total_ms is the queueing cost."
+        }
+      }
+    },
+    "harness_version": {
+      "type": "string",
+      "description": "Prompt-set and code version. A prompt edit invalidates prior results, so this must change with it."
+    },
+    "prompt_set": {
+      "type": "string"
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "item": {
+      "type": "object",
+      "description": "Item metadata copied in at write time. Deliberately duplicated from the item file so the run log alone supports stratification by category and domain - a reviewer recomputing a published number years later should not need the exact item file too.",
+      "additionalProperties": false,
+      "required": [
+        "answerable",
+        "category",
+        "domain"
+      ],
+      "properties": {
+        "answerable": {
+          "type": "boolean"
+        },
+        "category": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "difficulty": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paraphrase_of": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "forced_choice": {
+          "type": "boolean",
+          "description": "Item presented with options. Forced choice gives a well-defined Type-1 decision (required for meta-d') and a reachable negative class (required for Type-2 AUROC)."
+        }
+      }
+    },
+    "recovered_from_thinking": {
+      "type": "boolean",
+      "description": "The reply was parsed out of `thinking` because `response` was empty. Its OWN field, not `error`: error is the hard-failure channel the CLI points readers at, and putting a benign warning there made `error != null` ambiguous."
+    },
+    "permutation": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "integer"
+      },
+      "description": "Option ordering applied, as indices into the canonical order. Required to rescore a choice: a letter resolved against canonical order scores every permuted item wrong."
+    }
+  }
+}

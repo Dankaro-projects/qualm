@@ -1,0 +1,6 @@
+# Pinned for the same reason uv.lock is tracked: a published number must be
+# recomputable later, and that includes the toolchain that produced the harness.
+# Bump deliberately, not incidentally.
+[toolchain]
+channel = "1.97.1"
+components = ["rustfmt", "clippy"]

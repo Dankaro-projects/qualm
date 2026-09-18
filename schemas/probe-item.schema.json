@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dankaro.com/qualm/probe-item.schema.json",
+  "title": "Probe item",
+  "description": "One benchmark item. Stratification fields are required because the whole design rests on comparing behaviour ACROSS strata - a pooled number would hide the effect we most expect to find.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "prompt",
+    "answerable",
+    "category",
+    "domain",
+    "scoring"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable identifier. Results reference this, so it must never be reused for different content.",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "answerable": {
+      "type": "boolean",
+      "description": "Ground truth for abstention scoring: SHOULD the model answer at all?"
+    },
+    "category": {
+      "type": "string",
+      "description": "AbstentionBench taxonomy, plus three of ours: 'coherent-false-premise' (retained as a stratum; the mechanism claim was cut 2026-08-17), 'counterfactual' (KUQ's counterfactual questions — 'what if X had not happened' — which have no factual answer), and 'missing-context' (the answer is not in the passage the item supplies; SQuAD 2.0's unanswerables). See docs/METRICS.md.",
+      "enum": [
+        "answerable",
+        "unknown-answer",
+        "underspecified",
+        "false-premise",
+        "coherent-false-premise",
+        "subjective",
+        "stale",
+        "counterfactual",
+        "missing-context"
+      ]
+    },
+    "domain": {
+      "type": "string",
+      "description": "Domain-level stratification. Required because the quantisation effect on calibration is reported at domain level, so pooling would mask it."
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "easy",
+        "medium",
+        "hard"
+      ],
+      "description": "Optional but valuable: large models modulate confidence by difficulty and small ones reportedly do not. This field is how we test that here."
+    },
+    "scoring": {
+      "type": "object",
+      "description": "Must be mechanically checkable. If an item needs a judge model to score, it does not belong in the set - it introduces a confound and unbounded cost. 'set-contains' is set-match with the answer containing a gold on token boundaries (answer ⊇ gold, one direction — 'Jani' must not match 'Jani Beg'), for extractive QA where 'The Mongol army under Jani Beg' must count against gold 'Jani Beg' — exact match would score a confident correct answer as an error, the worst direction for Type-2 AUROC. It over-credits list answers that merely include the gold; stated where used.",
+      "additionalProperties": false,
+      "required": [
+        "method"
+      ],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "exact",
+            "numeric",
+            "set-match",
+            "set-contains",
+            "regex",
+            "choice",
+            "always-abstain"
+          ]
+        },
+        "answer": {
+          "description": "For method 'choice': the exact text of the correct option, NOT its index. Index-based answers silently break when options are permuted, which is precisely what validity screen #4 does."
+        },
+        "tolerance": {
+          "type": "number"
+        },
+        "pattern": {
+          "type": "string"
+        }
+      }
+    },
+    "paraphrase_of": {
+      "type": "string",
+      "description": "If set, this item is a reworded twin of the referenced id. Used by validity screen #3 (stability under paraphrase)."
+    },
+    "source": {
+      "type": "string",
+      "description": "Provenance: dataset name or 'authored'."
+    },
+    "notes": {
+      "type": "string"
+    },
+    "options": {
+      "type": "array",
+      "description": "Forced-choice alternatives, in canonical order. Presence of this field makes the item forced-choice. REQUIRED for a well-defined Type-1 decision: meta-d'/M-ratio are undefined without one (arXiv 2603.25112), and open-ended items also gave every model a 100% score, leaving Type-2 AUROC with no negative class. Distractors must be plausible enough that a competent model can actually fail - an item everyone aces measures nothing. maxItems 10 (was 6) to admit MMLU-Pro's ten-option items; the harness enumerates letters A..J.",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "maxItems": 10
+    },
+    "context": {
+      "type": "string",
+      "description": "The passage the question is about, if any (extractive QA). The prompt already embeds it; this copy is what the gate's grounding check reads — 'does the answer appear verbatim in the passage'. Optional."
+    }
+  }
+}

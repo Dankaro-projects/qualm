@@ -1,0 +1,32 @@
+[project]
+name = "qualm-analysis"
+version = "0.1.0"
+description = "Type-2 SDT, AUROC and validity screening over qualm run logs"
+requires-python = ">=3.12"
+
+# Deliberately thin. The heavy metacognition maths (hierarchical Bayesian
+# meta-d') is added only when M3 needs it — see docs/METRICS.md, which requires
+# an established implementation rather than a hand-rolled one. AUROC and the
+# validity screens need nothing beyond numpy.
+dependencies = [
+    "numpy>=2.0",
+    "scipy>=1.14",
+]
+
+[project.optional-dependencies]
+# Pulled in at M3, not before.
+plots = ["matplotlib>=3.9"]
+tables = ["polars>=1.0"]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["qualm_analysis"]
+
+[tool.pytest.ini_options]
+testpaths = ["qualm_analysis/tests"]

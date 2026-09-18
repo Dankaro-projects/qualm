@@ -1,0 +1,18 @@
+# Workspace root, so `cargo build` / `cargo test` work from the repo root rather
+# than only from inside the crate directory. Also the place to pin shared
+# dependency versions once there is more than one crate.
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/Dankaro-projects/qualm"
+
+# Release profile matters here: the harness sits in front of every inference
+# call in a workflow, so its own overhead should be negligible against the
+# model latency it is measuring.
+[profile.release]
+lto = "thin"
+codegen-units = 1

@@ -1,0 +1,115 @@
+# CI exists because this repo's claims are correctness claims. The metrics are
+# the published artifact; a silent regression in tie handling or a CI bound would
+# invalidate a leaderboard rather than break a feature.
+#
+# Deliberately does NOT touch a model. Nothing here needs a GPU or an inference server,
+# and a test suite that depends on model sampling is not a test suite.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      # --frozen: fail if uv.lock is stale rather than silently resolving new
+      # versions. The lockfile is part of the archival guarantee, so drifting
+      # from it in CI would defeat tracking it at all.
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Toolchain comes from rust-toolchain.toml, so CI and local agree.
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo build --locked
+      - run: cargo test
+
+  schemas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      # The schemas are load-bearing: they are what stops a run record without a
+      # quantisation tag from ever reaching the analysis. A malformed schema
+      # would disable that check while looking fine.
+      - name: Validate schemas are themselves valid JSON Schema
+        run: |
+          uv run --with jsonschema python - <<'PY'
+          import json, pathlib
+          from jsonschema import Draft202012Validator
+          for p in sorted(pathlib.Path("schemas").glob("*.json")):
+              Draft202012Validator.check_schema(json.loads(p.read_text()))
+              print(f"ok  {p}")
+          PY
+
+      - name: Validate example items in datasets/README.md parse against the schema
+        run: |
+          uv run --with jsonschema python - <<'PY'
+          import json, pathlib, re
+          from jsonschema import Draft202012Validator
+          schema = json.loads(pathlib.Path("schemas/probe-item.schema.json").read_text())
+          v = Draft202012Validator(schema)
+          text = pathlib.Path("datasets/README.md").read_text()
+          # The README's fenced json block is documentation that must stay true.
+          blocks = re.findall(r"```json\n(.*?)```", text, re.S)
+          n = 0
+          for b in blocks:
+              for line in b.strip().splitlines():
+                  if line.strip():
+                      v.validate(json.loads(line))
+                      n += 1
+          print(f"validated {n} example item(s)")
+          assert n > 0, "no example items found - README drifted"
+          PY
+
+      - name: Validate any committed item sets
+        run: |
+          shopt -s nullglob
+          sets=(datasets/*.jsonl)
+          if [ ${#sets[@]} -eq 0 ]; then
+            echo "no item sets committed yet (expected before M2)"
+            exit 0
+          fi
+          for f in "${sets[@]}"; do ./scripts/validate-items.py "$f"; done
+
+      - name: Validate committed run logs against run-record.schema.json
+        run: |
+          uv run --with jsonschema python - <<'PY'
+          import json, pathlib, sys
+          from jsonschema import Draft202012Validator
+          v = Draft202012Validator(json.loads(pathlib.Path("schemas/run-record.schema.json").read_text()))
+          # quarantine/ is excluded deliberately: it holds logs kept AS EVIDENCE of
+          # schema drift, so they are expected to fail and must not gate CI.
+          logs = [p for p in pathlib.Path("results/raw").glob("*.jsonl")]
+          if not logs:
+              print("no run logs committed"); sys.exit(0)
+          bad = 0
+          for p in logs:
+              for n, line in enumerate(p.read_text().splitlines(), 1):
+                  if not line.strip():
+                      continue
+                  for e in v.iter_errors(json.loads(line)):
+                      print(f"{p}:{n}: {e.message}"); bad += 1; break
+              print(f"checked {p}")
+          if bad:
+              print(f"{bad} invalid record(s)"); sys.exit(1)
+          PY

@@ -1,0 +1,35 @@
+[package]
+name = "qualm-harness"
+version = "0.3.0"
+edition = "2021"
+description = "Metacognitive control loop: elicit a confidence signal, then actually act on it"
+license = "Apache-2.0"
+
+[dependencies]
+# Async runtime. The loop holds several probes in flight against Ollama's
+# 4 parallel slots; oversubscribing them costs throughput (measured) rather
+# than gaining it, so concurrency is bounded by a semaphore, not by hope.
+# io-util supplies AsyncWriteExt and BufWriter for the run-log writer.
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "io-util"] }
+reqwest = { version = "0.12", features = ["json", "stream"], default-features = false }
+
+# Static types at the JSON boundary are the point of using Rust here. The
+# recurring bug in this domain is a field that quietly was not there -
+# serde makes that a compile-time or parse-time error instead of a silent null.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+anyhow = "1"
+thiserror = "2"
+# "env" is required for #[arg(env = ...)] — without it the attribute compiles
+# to a missing-method error rather than being ignored, which is the good outcome.
+clap = { version = "4", features = ["derive", "env"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+time = { version = "0.3", features = ["formatting", "macros"] }
+regex = "1"
+
+[dev-dependencies]
+# Record/replay against captured Ollama responses, so tests never need the GPU
+# box powered on and never depend on model sampling.
+wiremock = "0.6"

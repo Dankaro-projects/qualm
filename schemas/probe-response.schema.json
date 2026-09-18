@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dankaro.com/qualm/probe-response.schema.json",
+  "title": "Probe response",
+  "description": "What the model must return. The harness sends a per-item derivative of this as Ollama's `format` field: open-ended items require abstain/answer/confidence; forced-choice items require abstain/choice/confidence with choice constrained to the letters on offer.\n\nThis shape exists to solve a scoring problem rather than for tidiness. If abstention were detected by reading prose, 'I don't know, but probably Paris' would be simultaneously an abstention and an answer, and abstention-recall would quietly become a measure of our regex. Making `abstain` an explicit boolean the model must set removes the judgement call from scoring entirely - which is the whole reason structured output is worth the trouble here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "abstain",
+    "answer",
+    "confidence"
+  ],
+  "properties": {
+    "abstain": {
+      "type": "boolean",
+      "description": "true = declining to answer. The model is told explicitly that declining is a valid, unpenalised choice when the question cannot be answered."
+    },
+    "answer": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Short answer, or null when abstaining. Kept short deliberately: long answers make mechanical scoring unreliable and blow num_predict, which surfaces as truncated JSON and reads as model failure."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence that `answer` is correct. When abstaining, confidence that abstention was the right call. NOTE: models cluster this on a handful of round values in the 0.8-1.0 band - that clustering is the phenomenon under study, not a defect to prompt away."
+    },
+    "choice": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "For forced-choice items: the letter of the selected option (A, B, C...). The harness derives a per-item format from this file that makes `choice` REQUIRED and an enum of exactly the letters shown, with no null — so under grammar-constrained decoding a letter is present even when abstain=true, and it is then meaningless (read outcome.abstained, never choice==null, to detect abstention). null only on open-ended items. A letter rather than the option text because the text invites paraphrase, and a paraphrased option cannot be matched reliably."
+    },
+    "premise_challenged": {
+      "type": "boolean",
+      "description": "Set true when the question rests on something the model believes is false. Added 2026-08-17 because the instrument could not represent it: gemma4 replied '1921 (for the photoelectric effect)' - correctly rebutting a false premise - and was scored as having FALLEN FOR it, since the only options were answer or abstain. Without this field, the most premise-aware response is indistinguishable from the most credulous one, and the coherence experiment measures the wrong thing."
+    }
+  }
+}

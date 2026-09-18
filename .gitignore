@@ -1,0 +1,37 @@
+# Rust
+target/
+**/target/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# uv.lock IS tracked, deliberately. This project's claim is that a published
+# number can be recomputed from a run log years later — which is false if the
+# statistics stack floats. Pinning it is part of the archival guarantee.
+
+# Run logs are large and regenerable; the WRITEUPS in results/ are tracked but
+# the raw JSONL is not. If a specific run backs a published claim, commit it
+# explicitly with `git add -f` and say so in the writeup — that is the archival
+# artifact a reviewer needs.
+results/*.jsonl
+results/raw/
+# Gate decision logs (a different shape from run records — CI validates
+# results/raw/ against run-record.schema.json, so these live apart) are small
+# and committed like the raw logs they derive from.
+
+# Local overrides
+.env
+.envrc
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Downloaded source datasets (MMLU-Pro, KUQ, FalseQA, SQuAD2); the converters re-fetch them
+data-cache/
