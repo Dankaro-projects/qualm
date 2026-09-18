@@ -88,6 +88,10 @@ cargo build --release
 
 The harness talks to Ollama at `http://localhost:11434` by default. Set `QUALM_OLLAMA` or pass `--ollama` to use another server. The measurements in `results/` were taken on an RTX 5060 Ti with 16 GB, with Ollama configured for 4 parallel requests (`OLLAMA_NUM_PARALLEL=4`).
 
+## Related work
+
+[corpus-gaps](https://github.com/Dankaro-projects/corpus-gaps) asks the same question of the retrieval step: whether search scores reveal that a corpus does not contain the answer. It finds that a whole missing topic is easy to detect, while a single missing document among related ones is not.
+
 ## Where to start reading
 
 Start with [docs/RESEARCH.md](docs/RESEARCH.md). Each design decision in this repository follows from a specific finding, and that document names which one.
