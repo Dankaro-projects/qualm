@@ -4,6 +4,21 @@ The milestones are ordered so that the cheapest test that could stop the project
 
 Each milestone states the result that would count as failure, because a milestone without a failure condition is only an item on a list.
 
+## Action-risk evaluation (planned)
+
+As of 24 September 2026, the next work is to test whether estimating the risk of acting on an answer improves one real document-based workflow. [ACTION_RISK.md](ACTION_RISK.md) defines the target, reference labels, data splits, cost model, comparisons and decision criteria. No calibrated risk estimator or workflow deployment exists yet. M0–M5 below preserve the earlier benchmark and harness history.
+
+| Order | Work | Completion evidence | Stop condition |
+|---|---|---|---|
+| 1 | [Select the workflow, action and acceptable loss](https://github.com/Dankaro-projects/qualm/issues/1) | Named owner and collection; labelled-outcome rubric; costs or explicit cost scenarios; maximum accepted error rate, minimum coverage and review capacity; split and sample-size plan | No defensible reference labels, usable collection or decision criteria |
+| 2 | [Build labelled cases and signal baselines](https://github.com/Dankaro-projects/qualm/issues/2) | Versioned cases and document groups; adjudicated labels; frozen splits; reproducible existing-gate and signal comparisons with costs and provenance | Leakage, unresolved label quality or too few independent cases to evaluate the intended claim |
+| 3 | [Calibrate error estimates and compare decision policies](https://github.com/Dankaro-projects/qualm/issues/3) | Frozen estimator and thresholds; held-out calibration, selective-risk and paired-loss report; ablations and uncertainty | No useful improvement over a simple gate, failed acceptance criteria or inconclusive evidence |
+| 4 | [Run a shadow trial and decide whether to deploy](https://github.com/Dankaro-projects/qualm/issues/4) | Fresh workflow outcomes, accepted-case audits, measured review burden and residual errors, and a recorded deployment or no-deployment decision | Offline benefit does not persist, review burden is excessive or evidence remains insufficient |
+
+The [Qualm action-risk evaluation board](https://github.com/orgs/Dankaro-projects/projects/8) tracks these issues. All four are planned (`Todo`).
+
+These steps are sequential. The workflow owner and collection are still to be selected in step 1. The first implementation work belongs to the offline evaluation; a new runtime policy depends on its results. Existing schemas, CLI behaviour and historical run logs remain unchanged by this plan.
+
 ---
 
 ## M0: Scaffold and first connection (done)

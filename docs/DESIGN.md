@@ -31,20 +31,11 @@ datasets/*.jsonl ──────────► qualm-harness ─────
                                  └──► Ollama HTTP API
 ```
 
-## The control loop
+## The current control loop
 
-The loop follows [RESEARCH.md, section 4](RESEARCH.md) (the Nelson and Narens model; arXiv 2605.14186). Two elicited signals surround each attempt:
+The pre-solve/post-solve confidence loop in [RESEARCH.md, section 4](RESEARCH.md) motivated the project, but that earlier design was set aside (ROADMAP M4). The implemented gate samples answers, computes agreement and checks whether the answer text occurs in a supplied passage. It routes malformed output to review, a valid majority abstention to decline, and accepts an answer only when the configured checks pass.
 
-```
-  ┌─ FOK ─┐          ┌─ solve ─┐          ┌─ JOL ─┐         ┌── control ──┐
-  │ pre   │ ───────► │ attempt │ ───────► │ post  │ ──────► │ trust       │
-  │ solve │          │         │          │ solve │         │ retry       │
-  └───────┘          └─────────┘          └───────┘         │ aggregate   │
-                                                            │ ABSTAIN     │
-                                                            └─────────────┘
-```
-
-The `ABSTAIN` branch is this project's addition and is not in the source paper. The paper optimises accuracy. This project also cares about declining to answer, which is a fourth branch and the most important one for professional document work.
+Acceptance currently requires unanimity and mean stated confidence at or above `--accept-at` (default `1.0`). When a passage is supplied and `--require-grounded` is true, the answer must also occur in that passage. Without a passage, that check is skipped. The field `grounded` records verbatim occurrence after normalisation, not whether the evidence supports the answer to the question. These are rules, not a calibrated risk estimate.
 
 The harness has two subcommands that share the client, the prompt and the response schema:
 
@@ -64,7 +55,7 @@ The elicitation strategy is therefore an interface from the start:
 | Verbalised, through the `confidence` field in the schema | Default | Parses reliably on granite, qwen and gemma |
 | Self consistency, sampling several times and measuring agreement | In use in the `gate` subcommand and the agreement measurements | Needs no log probabilities, but costs one inference per sample |
 | Derived from log probabilities | Blocked | Ollama does not expose token log probabilities reliably |
-| A feeling of knowing before solving and a judgement of learning after | Planned | The source paper's own method |
+| A feeling of knowing before solving and a judgement of learning after | Set aside | The source paper's method; not the implemented loop (ROADMAP M4) |
 
 If the validity screen rejects verbalised confidence, the project changes the strategy rather than stopping. Making the strategy replaceable is what turns a failed screen into a finding instead of a dead end.
 
@@ -85,3 +76,9 @@ From harness version 0.3.0, `schemas/run-record.schema.json` requires these fiel
 - **It does not fine tune models.** The harness result requires no change to model parameters, and fine tuning for reasoning has been measured to reduce a model's willingness to abstain. Any fine tuning would be a separate milestone with its own justification.
 - **It is not a general evaluation framework.** Many exist already. This project measures one thing.
 - **It is not a serving layer.** Ollama serves the models; the harness sits in front of it.
+
+## Planned action-risk evaluation
+
+[ACTION_RISK.md](ACTION_RISK.md) defines the next evaluation. Python will first compare the existing rules with task-specific error estimates on labelled, held-out cases. A future runtime policy would compare accepting, reviewing and declining using those estimates and workflow-specific consequences, but only after the evaluation supports that change.
+
+The plan does not add a runtime score, change CLI behaviour or rename existing log fields. Any later estimator needs versioned inputs and calibration evidence for its model, prompts, sources and action. Missing signals and unsupported configurations cannot be treated as zero risk. Evidence-support checking is a separate proposed measurement from the existing passage-occurrence check.

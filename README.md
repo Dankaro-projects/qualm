@@ -2,7 +2,7 @@
 
 A qualm is a feeling of doubt, especially one that a person fails to act on.
 
-Language models produce a usable signal about whether they know an answer, and then ignore it. `qualm` measures that signal on quantised models that people run on their own hardware, and provides a harness that acts on it.
+`qualm` measures whether observable signals from quantised language models predict answer errors, and provides a harness that uses those signals to accept, review or decline answers. In its larger experiments, agreement across answers predicts errors better than stated confidence.
 
 The project has two parts that share one codebase:
 
@@ -21,7 +21,13 @@ On the harness side there is a strong published result. Eliciting a confidence s
 
 ## The thesis
 
-People name four qualities when they say a model is not human enough: judgment, reasoning, hesitation and intuition. Of these, only hesitation is both missing and measurable. Reasoning is largely solved. Models have too much intuition rather than too little, in the sense of pattern completion without the conditions that Kahneman and Klein describe for valid intuition. Judgment is hardly defined in a way that can be measured. This project therefore builds for hesitation, and measures it.
+Hesitation is useful when it changes a decision: checking evidence, asking for review or declining an unsupported answer. The practical question is whether observed uncertainty helps a system decide when acting on an answer is worth the risk. Answer stability, factual correctness, evidence support and the consequences of an action are different quantities; no single confidence statement establishes all four.
+
+## Next: estimate the risk of acting
+
+[The action-risk evaluation plan](docs/ACTION_RISK.md) proposes testing one real document-based workflow. It separates the estimated probability that an answer is incorrect or unsupported from the consequence of acting on it, then compares accepting, reviewing and declining on held-out cases.
+
+This is planned work. The current gate is rule-based; it does not provide a calibrated error probability or an expected-loss estimate. The next steps are to select the workflow and acceptance criteria, build labelled cases, compare simple gates with a calibrated estimate, and run a shadow trial before any deployment decision. The [roadmap](docs/ROADMAP.md#action-risk-evaluation-planned) records the sequence.
 
 ## Results
 
@@ -47,7 +53,7 @@ Type 2 AUROC on answerable items only, with a cluster bootstrap over 32 independ
 | `gemma4:12b` | 0.530 [0.476, 0.582] | **0.737 [0.680, 0.794]** | keeps 49% at 0.79, against 0.59 |
 | `qwen3.5:9b` | 0.514 [0.473, 0.555] | **0.746 [0.685, 0.806]** | keeps 36% at 0.85, against 0.55 |
 
-Stated confidence is at chance level for all three models, while agreement across orderings reaches 0.73 to 0.75 for all three. The signal therefore depends on the method of elicitation, not on the model. The earlier result for `gemma4:12b` on 57 items was a small sample effect, and it is kept as the record of that.
+Stated confidence is at or near chance for these three models, while agreement across orderings reaches 0.73 to 0.75. This supports agreement as the more useful signal on this setup; it does not establish independence from model choice. The earlier result for `gemma4:12b` on 57 items did not survive the larger evaluation, and it is kept as the record of that.
 
 On a question answering task over passages, a gate based on stated confidence does nothing. Checking that the answer appears in the passage, and requiring the same answer in 3 samples, reduces the wrong answers let through from 84 to 28.
 
@@ -68,6 +74,7 @@ The command line also prints a pooled figure, which counts attempted answers to 
 | `docs/METRICS.md` | Why the project uses AUROC rather than the M ratio, and the validity screen |
 | `docs/DESIGN.md` | The division between Rust and Python, and the reasons for it |
 | `docs/ROADMAP.md` | Milestones, each with the result that would count as failure |
+| `docs/ACTION_RISK.md` | Proposed workflow evaluation of error probability, consequences and accept/review/decline decisions |
 | `crates/qualm-harness/` | Rust: the control loop, concurrency and provenance |
 | `python/qualm_analysis/` | Python: Type 2 signal detection, AUROC and validity screening |
 | `schemas/` | The probe item and run record schemas. Provenance fields are required from version 0.3.0, and CI validates every committed log |
