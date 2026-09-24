@@ -48,6 +48,14 @@ ECE and the Brier score answer a *different* question: whether a stated 0.9 corr
 
 **Reliability diagrams are the most transparent presentation.** A single ECE figure hides whether a model is uniformly overconfident or badly wrong in one bin.
 
+### Planned metrics for action risk
+
+The benchmark's emphasis on discrimination does not establish a probability that an answer is wrong. For the [action-risk evaluation](ACTION_RISK.md), calibration and the cost of decisions are primary requirements. The target is whether the candidate answer is incorrect or unsupported for the specified action; answerability and failure category remain separate labels.
+
+Report calibration of `p_error`, accepted error rate, acceptance coverage, review and decline counts, residual errors after review, and total loss under declared costs. Evaluate on untouched cases with thresholds fixed beforehand and uncertainty calculated over independent case/document groups. Keep any AUROC for predicting an unfit answer explicitly separate from the existing answerable-only Type-2 AUROC. Do not turn `1 - agreement` or `1 - confidence` into a probability without calibration evidence.
+
+The protocol, denominators, baseline comparisons and advancement criteria are in [ACTION_RISK.md, section 4](ACTION_RISK.md#4-evaluate-probability-quality-and-decision-value-separately). This remains planned analysis; existing reported benchmark values are unchanged.
+
 ## Abstention metrics
 
 These metrics are distinct from calibration, and they address the question that matters for a product. They follow the framing of AbstentionBench.

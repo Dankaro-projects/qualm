@@ -4,6 +4,8 @@ Every claim in this document was checked against its source on **2026-08-17**. W
 
 The status of each source is marked as follows. **Verified** means that the abstract or the paper was read directly. **Contested** means that credible work argues the opposite.
 
+**Scope update, 24 September 2026.** The sections below retain the research rationale recorded on 17 August. The next evaluation is defined in [ACTION_RISK.md](ACTION_RISK.md): whether observable signals improve decisions about acting on an answer in a specified workflow. That evaluation does not assume that reasoning is solved, that models experience doubt, or that a failed confidence screen proves the absence of internal monitoring. Failures of the measured agreement and confidence checks do not establish that every other signal from the same model must fail. Similar results across three models also do not establish model independence. Claims about reward-driven overconfidence require a separate causal experiment; the relevant sources and boundary are in [ACTION_RISK.md, section 6](ACTION_RISK.md#6-keep-reward-driven-overconfidence-as-a-separate-question).
+
 ---
 
 ## 1. Hesitation is the gap, and it remains unsolved
